@@ -3,16 +3,16 @@ package com.downloadtest;
 import android.content.Context;
 import android.content.res.Resources;
 import android.databinding.DataBindingUtil;
-import android.os.Build;
+import android.net.Uri;
 import android.os.Environment;
-import android.support.annotation.RequiresApi;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
-import android.util.Log;
 import android.view.View;
+import android.widget.MediaController;
 import android.widget.Toast;
+import android.widget.VideoView;
 
 import com.downloader.Error;
 import com.downloader.OnCancelListener;
@@ -23,31 +23,61 @@ import com.downloader.OnStartOrResumeListener;
 import com.downloader.PRDownloader;
 import com.downloader.PRDownloaderConfig;
 import com.downloader.Progress;
-import com.downloader.Status;
 import com.downloadtest.databinding.ActivityMainBinding;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.util.Locale;
+
+import javax.crypto.Cipher;
+import javax.crypto.CipherInputStream;
+import javax.crypto.CipherOutputStream;
+import javax.crypto.KeyGenerator;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKey;
 
 public class MainActivity extends AppCompatActivity {
     ActivityMainBinding binding;
     int downloadId;
+    String dirPath;
+    String filename;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        binding = DataBindingUtil.setContentView(this, R.layout.activity_main);
+        binding = DataBindingUtil.setContentView(this,
+                R.layout.activity_main);
+        dirPath = getRootDirPath(getApplicationContext());
+        filename = "url54.mp4";
         init();
-        binding.button.setOnClickListener(new View.OnClickListener() {
+        binding.btDownload.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 downloadFile("http://www.sample-videos.com/video/mp4/720/big_buck_bunny_720p_2mb.mp4"
-                        , ".url54.mp4");
+                        , filename);
+            }
+        });
+
+        binding.btEncrypt.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                try {
+                    encryptFile(dirPath, filename);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } catch (NoSuchPaddingException e) {
+                    e.printStackTrace();
+                } catch (NoSuchAlgorithmException e) {
+                    e.printStackTrace();
+                } catch (InvalidKeyException e) {
+                    e.printStackTrace();
+                }
             }
         });
 
@@ -58,6 +88,60 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        binding.btPlay.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                play();
+            }
+        });
+
+    }
+
+    public static void encryptFile(String path, String fileName) throws IOException,
+            NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException {
+        FileInputStream fis = new FileInputStream(new File(path +"/"+ fileName));
+        File outfile = new File(path  +"/"+ "enc1.mp4");
+        int read;
+        if (!outfile.exists())
+            outfile.createNewFile();
+        File decfile = new File(path  +"/"+ "dec1.mp4");
+        if (!decfile.exists())
+            decfile.createNewFile();
+        FileOutputStream fos = new FileOutputStream(outfile);
+        FileInputStream encfis = new FileInputStream(outfile);
+        FileOutputStream decfos = new FileOutputStream(decfile);
+        Cipher encipher = Cipher.getInstance("AES");
+        Cipher decipher = Cipher.getInstance("AES");
+        KeyGenerator kgen = KeyGenerator.getInstance("AES");
+        //byte key[] = {0x00,0x32,0x22,0x11,0x00,0x00,0x00,0x00,0x00,0x23,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
+        SecretKey skey = kgen.generateKey();
+        //Lgo
+        encipher.init(Cipher.ENCRYPT_MODE, skey);
+        CipherInputStream cis = new CipherInputStream(fis, encipher);
+        decipher.init(Cipher.DECRYPT_MODE, skey);
+        CipherOutputStream cos = new CipherOutputStream(decfos, decipher);
+        while ((read = cis.read()) != -1) {
+            fos.write((char) read);
+            fos.flush();
+        }
+        fos.close();
+        while ((read = encfis.read()) != -1) {
+            cos.write(read);
+            cos.flush();
+        }
+        cos.close();
+    }
+
+    private void play() {
+        String LINK = "http://techslides.com/demos/sample-videos/small.mp4";
+        VideoView videoView = (VideoView) findViewById(R.id.videoView);
+        MediaController mc = new MediaController(this);
+        mc.setAnchorView(videoView);
+        mc.setMediaPlayer(videoView);
+        Uri video = Uri.parse(LINK);
+        videoView.setMediaController(mc);
+        videoView.setVideoURI(video);
+        videoView.start();
     }
 
     public static String getRootDirPath(Context context) {
@@ -71,7 +155,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void changeLanguage() {
-        String language_code ="in";
+        String language_code = "hi";
         Resources res = getResources();
 // Change locale settings in the app.
         DisplayMetrics dm = res.getDisplayMetrics();
@@ -82,8 +166,7 @@ public class MainActivity extends AppCompatActivity {
         binding.btLanguage.setText(getResources().getString(R.string.change_language));
     }
 
-    private void downloadFile(String url, String fileName) {
-        String dirPath = getRootDirPath(getApplicationContext());
+    private void downloadFile(String url, final String fileName) {
 
         downloadId = PRDownloader.download(url, dirPath, fileName)
                 .build()
@@ -117,6 +200,7 @@ public class MainActivity extends AppCompatActivity {
                         Toast.makeText(MainActivity.this,
                                 String.valueOf(progress.currentBytes),
                                 Toast.LENGTH_SHORT).show();
+
                     }
                 })
                 .start(new OnDownloadListener() {
@@ -125,6 +209,7 @@ public class MainActivity extends AppCompatActivity {
                         Toast.makeText(MainActivity.this,
                                 "Complete",
                                 Toast.LENGTH_SHORT).show();
+
                     }
 
                     @Override
