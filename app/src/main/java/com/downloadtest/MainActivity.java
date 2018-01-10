@@ -5,6 +5,7 @@ import android.content.res.Resources;
 import android.databinding.DataBindingUtil;
 import android.net.Uri;
 import android.os.Environment;
+import android.os.StatFs;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -59,7 +60,7 @@ public class MainActivity extends AppCompatActivity {
         binding.btDownload.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                downloadFile("http://www.sample-videos.com/video/mp4/720/big_buck_bunny_720p_2mb.mp4"
+                downloadFile("https://d1r3nsl6bers2.cloudfront.net/en/tte/w1_phb_tenzin_01_hd.mp4"
                         , filename);
             }
         });
@@ -94,17 +95,37 @@ public class MainActivity extends AppCompatActivity {
                 play();
             }
         });
+        binding.btSpace.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                getAvailableMemory();
+            }
+        });
+        binding.btResume.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                PRDownloader.resume(downloadId);
+            }
+        });
 
+
+    }
+
+    void getAvailableMemory() {
+        StatFs stat = new StatFs(Environment.getExternalStorageDirectory().getPath());
+        long bytesAvailable = (long) stat.getBlockSize() * (long) stat.getBlockCount();
+        long megAvailable = bytesAvailable / 1048576;
+        System.out.println("Megs :" + megAvailable);
     }
 
     public static void encryptFile(String path, String fileName) throws IOException,
             NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException {
-        FileInputStream fis = new FileInputStream(new File(path +"/"+ fileName));
-        File outfile = new File(path  +"/"+ "enc1.mp4");
+        FileInputStream fis = new FileInputStream(new File(path + "/" + fileName));
+        File outfile = new File(path + "/" + "enc1.mp4");
         int read;
         if (!outfile.exists())
             outfile.createNewFile();
-        File decfile = new File(path  +"/"+ "dec1.mp4");
+        File decfile = new File(path + "/" + "dec1.mp4");
         if (!decfile.exists())
             decfile.createNewFile();
         FileOutputStream fos = new FileOutputStream(outfile);
@@ -155,7 +176,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void changeLanguage() {
-        String language_code = "hi";
+        String language_code = "np";
         Resources res = getResources();
 // Change locale settings in the app.
         DisplayMetrics dm = res.getDisplayMetrics();
@@ -215,8 +236,10 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void onError(Error error) {
                         Toast.makeText(MainActivity.this,
-                                String.valueOf(error),
-                                Toast.LENGTH_SHORT).show();
+                                String.valueOf(error.isServerError()),
+                                Toast.LENGTH_LONG).show();
+                        binding.editText.setText(String.valueOf(error.isServerError()));
+                        binding.editText.append(String.valueOf(error.isConnectionError()));
                     }
 
                 });
