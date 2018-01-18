@@ -7,6 +7,7 @@ import android.os.PersistableBundle;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
+import android.widget.SeekBar;
 import android.widget.Toast;
 
 import com.downloadtest.databinding.ActivityTestBinding;
@@ -48,12 +49,48 @@ public class TestActivity extends AppCompatActivity {
             }
         });
 
+        binding.seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+
+            int progress = 0;
+
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progresValue, boolean fromUser) {
+
+                progress = progresValue;
+
+                Toast.makeText(getApplicationContext(), "Changing seekbar's progress", Toast.LENGTH_SHORT).show();
+
+            }
+
+
+            @Override
+
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+                Toast.makeText(getApplicationContext(), "Started tracking seekbar", Toast.LENGTH_SHORT).show();
+
+            }
+
+
+            @Override
+
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+//                textView.setText("Covered: " + progress + "/" + seekBar.getMax());
+
+                Toast.makeText(getApplicationContext(), "Stopped tracking seekbar", Toast.LENGTH_SHORT).show();
+
+            }
+
+        });
+
+
     }
 
     void init() {
         Uri downloadUri = Uri
-                .parse("https://d1r3nsl6bers2.cloudfront.net/en/tte/w1_phb_tenzin_01_hd.mp4");
-        Uri destinationUri = Uri.parse(this.getExternalCacheDir().toString() +  filename);
+                .parse("https://d1r3nsl6bers2.cloudfront.net/en/tte/welcome_by_cnr_4_mind_changings_hd.mp4");
+        Uri destinationUri = Uri.parse(this.getExternalCacheDir().toString() + filename);
         downloadRequest = new DownloadRequest(downloadUri)
 //                .addCustomHeader("Auth-Token", "YourTokenApiKey")
                 .setRetryPolicy(new DefaultRetryPolicy())
@@ -62,20 +99,21 @@ public class TestActivity extends AppCompatActivity {
                     @Override
                     public void onDownloadComplete(int id) {
                         Toast.makeText(TestActivity.this,
-                               "Success"+id,
+                                "Success" + id,
                                 Toast.LENGTH_SHORT).show();
                     }
 
                     @Override
                     public void onDownloadFailed(int id, int errorCode, String errorMessage) {
                         Toast.makeText(TestActivity.this,
-                               errorMessage,
+                                errorMessage,
                                 Toast.LENGTH_SHORT).show();
                     }
 
                     @Override
-                    public void onProgress(int id, long totalBytes, long downlaodedBytes, int progress)
-                    {
+                    public void onProgress(int id, long totalBytes, long downlaodedBytes, int progress) {
+                        binding.seekBar.setMax((int) (totalBytes));
+                        binding.seekBar.setProgress((int) downlaodedBytes);
                         Toast.makeText(TestActivity.this,
                                 String.valueOf(downlaodedBytes),
                                 Toast.LENGTH_SHORT).show();
